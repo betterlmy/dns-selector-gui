@@ -18,6 +18,7 @@ export function ApplyDNSDialog({ dnsAddress, dnsName, onClose }: Props) {
   const setAdapters = useAppStore((s) => s.setAdapters);
 
   const [selected, setSelected] = useState('');
+  const [secondary, setSecondary] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
@@ -26,9 +27,9 @@ export function ApplyDNSDialog({ dnsAddress, dnsName, onClose }: Props) {
     setFeedback(null);
     setSubmitting(true);
     try {
-      await ApplyDNS(selected, dnsAddress);
-      setFeedback({ type: 'success', msg: `已将 ${dnsName} 应用到 ${selected}` });
-      // refresh adapters
+      await ApplyDNS(selected, dnsAddress, secondary.trim());
+      const secMsg = secondary.trim() ? `，备用 ${secondary.trim()}` : '';
+      setFeedback({ type: 'success', msg: `已将首选 DNS ${dnsName}${secMsg} 应用到 ${selected}` });
       try {
         const list = await GetNetworkAdapters();
         setAdapters(list ?? []);
@@ -46,7 +47,29 @@ export function ApplyDNSDialog({ dnsAddress, dnsName, onClose }: Props) {
   return (
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        <h3 className="dialog-title">应用 DNS: {dnsName}</h3>
+        <h3 className="dialog-title">应用 DNS</h3>
+
+        {/* 首选 DNS */}
+        <div className="dns-role-row">
+          <span className="dns-role-badge dns-role-badge--primary">首选</span>
+          <div className="dns-role-info">
+            <span className="dns-target-value">{dnsName}</span>
+            <span className="dns-target-addr">{dnsAddress}</span>
+          </div>
+        </div>
+
+        {/* 备用 DNS 输入 */}
+        <div className="dns-role-row">
+          <span className="dns-role-badge dns-role-badge--secondary">备用</span>
+          <input
+            className="form-input dns-secondary-input"
+            type="text"
+            placeholder="输入备用 DNS IP（可选，如 8.8.4.4）"
+            value={secondary}
+            onChange={(e) => setSecondary(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
 
         {!isAdmin && (
           <div className="admin-warning">
@@ -54,36 +77,38 @@ export function ApplyDNSDialog({ dnsAddress, dnsName, onClose }: Props) {
           </div>
         )}
 
-        <div className="form-group" style={{ marginTop: 12 }}>
+        <div className="form-group">
           <label className="form-label">选择网络适配器</label>
           {(!adapters || adapters.length === 0) ? (
             <div className="dns-empty">无可用网络适配器</div>
           ) : (
-            adapters.map((a) => (
-              <label
-                key={a.name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '6px 0',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
-                <input
-                  type="radio"
-                  name="adapter"
-                  value={a.name}
-                  checked={selected === a.name}
-                  onChange={() => setSelected(a.name)}
-                />
-                <span>{a.name}</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
-                  ({a.currentDNS?.join(', ') || 'DHCP'})
-                </span>
-              </label>
-            ))
+            <div className="adapter-list">
+              {adapters.map((a) => (
+                <label
+                  key={a.name}
+                  className={`adapter-option${selected === a.name ? ' adapter-option--selected' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="adapter"
+                    value={a.name}
+                    checked={selected === a.name}
+                    onChange={() => setSelected(a.name)}
+                  />
+                  <div className="adapter-option__info">
+                    <span className="adapter-option__name">{a.name}</span>
+                    {a.ipAddresses?.length > 0 && (
+                      <span className="adapter-option__ip">
+                        IP：{a.ipAddresses.join('，')}
+                      </span>
+                    )}
+                    <span className="adapter-option__dns">
+                      当前 DNS：{a.currentDNS?.length ? a.currentDNS.join('，') : 'DHCP 自动获取'}
+                    </span>
+                  </div>
+                </label>
+              ))}
+            </div>
           )}
         </div>
 

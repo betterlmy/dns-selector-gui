@@ -20,7 +20,7 @@ func NewDNSConfigService() *DNSConfigService {
 	return &DNSConfigService{}
 }
 
-// GetAdapters 通过 iphlpapi.GetAdaptersAddresses 获取所有活动网络适配器及其 DNS 配置。
+// GetAdapters 通过 iphlpapi.GetAdaptersAddresses 获取所有活动网络适配器及其 DNS 和 IP 配置。
 func (d *DNSConfigService) GetAdapters() ([]NetworkAdapterInfo, error) {
 	const (
 		AF_INET             = 2
@@ -56,6 +56,20 @@ func (d *DNSConfigService) GetAdapters() ([]NetworkAdapterInfo, error) {
 		Sockaddr       *syscall.RawSockaddrAny
 		SockaddrLength int32
 	}
+	// IP_ADAPTER_UNICAST_ADDRESS 简化版（只需要 Next 和 Address）
+	type ipAdapterUnicastAddress struct {
+		Length             uint32
+		Flags              uint32
+		Next               *ipAdapterUnicastAddress
+		Address            socketAddress
+		PrefixOrigin       uint32
+		SuffixOrigin       uint32
+		DadState           uint32
+		ValidLifetime      uint32
+		PreferredLifetime  uint32
+		LeaseLifetime      uint32
+		OnLinkPrefixLength uint8
+	}
 	type ipAdapterDNSServerAddress struct {
 		Length   uint32
 		Reserved uint32
@@ -67,7 +81,7 @@ func (d *DNSConfigService) GetAdapters() ([]NetworkAdapterInfo, error) {
 		IfIndex               uint32
 		Next                  *ipAdapterAddresses
 		AdapterName           *byte
-		FirstUnicastAddress   uintptr
+		FirstUnicastAddress   *ipAdapterUnicastAddress // 改为正确的指针类型
 		FirstAnycastAddress   uintptr
 		FirstMulticastAddress uintptr
 		FirstDNSServerAddress *ipAdapterDNSServerAddress
@@ -89,6 +103,23 @@ func (d *DNSConfigService) GetAdapters() ([]NetworkAdapterInfo, error) {
 			name := windows.UTF16PtrToString(adapter.FriendlyName)
 			ifIndex := int(adapter.IfIndex)
 
+			// 读取适配器自身的 IPv4 地址
+			var ipAddresses []string
+			unicast := adapter.FirstUnicastAddress
+			for unicast != nil {
+				if sa := unicast.Address.Sockaddr; sa != nil {
+					ip := sockaddrToIP(sa)
+					if ip != "" && ip != "0.0.0.0" {
+						ipAddresses = append(ipAddresses, ip)
+					}
+				}
+				unicast = unicast.Next
+			}
+			if ipAddresses == nil {
+				ipAddresses = []string{}
+			}
+
+			// 读取 DNS 服务器地址
 			var dnsServers []string
 			dnsAddr := adapter.FirstDNSServerAddress
 			for dnsAddr != nil {
@@ -108,6 +139,7 @@ func (d *DNSConfigService) GetAdapters() ([]NetworkAdapterInfo, error) {
 				Name:         name,
 				InterfaceIdx: ifIndex,
 				Status:       "Up",
+				IPAddresses:  ipAddresses,
 				CurrentDNS:   dnsServers,
 			})
 		}
@@ -120,14 +152,30 @@ func (d *DNSConfigService) GetAdapters() ([]NetworkAdapterInfo, error) {
 	return results, nil
 }
 
-// SetDNS 通过写注册表设置指定适配器的 DNS 服务器，立即生效。
-// 写入 Tcpip\Parameters\Interfaces\{GUID}\NameServer，然后通知网络栈重新加载。
-func (d *DNSConfigService) SetDNS(adapterName string, dnsAddress string) error {
+// SetDNS 通过写注册表设置指定适配器的首选和备用 DNS 服务器。
+// 支持 DoH URL（自动提取 IP）、DoT 域名（需要 IP）、普通 IP。
+// Windows NameServer 格式：多个地址用逗号分隔，如 "8.8.8.8,8.8.4.4"。
+func (d *DNSConfigService) SetDNS(adapterName string, primaryDNS string, secondaryDNS string) error {
 	if adapterName == "" {
 		return fmt.Errorf("适配器名称不能为空")
 	}
-	if dnsAddress == "" {
-		return fmt.Errorf("DNS 地址不能为空")
+	if primaryDNS == "" {
+		return fmt.Errorf("首选 DNS 不能为空")
+	}
+
+	// 提取可用于系统 DNS 的 IP 地址（处理 DoH URL 和 DoT 域名）
+	primaryIP, err := extractDNSIP(primaryDNS)
+	if err != nil {
+		return fmt.Errorf("无法从 %q 提取 DNS IP 地址: %w", primaryDNS, err)
+	}
+
+	// 构建 NameServer 值
+	nameServer := primaryIP
+	if secondaryDNS != "" {
+		secondaryIP, err := extractDNSIP(secondaryDNS)
+		if err == nil && secondaryIP != "" {
+			nameServer = primaryIP + "," + secondaryIP
+		}
 	}
 
 	guid, err := getAdapterGUID(adapterName)
@@ -135,7 +183,6 @@ func (d *DNSConfigService) SetDNS(adapterName string, dnsAddress string) error {
 		return fmt.Errorf("获取适配器 %q 的 GUID 失败: %w", adapterName, err)
 	}
 
-	// 写入 Tcpip 接口注册表
 	keyPath := `SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\` + guid
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, keyPath, registry.SET_VALUE)
 	if err != nil {
@@ -143,16 +190,60 @@ func (d *DNSConfigService) SetDNS(adapterName string, dnsAddress string) error {
 	}
 	defer k.Close()
 
-	if err := k.SetStringValue("NameServer", dnsAddress); err != nil {
+	if err := k.SetStringValue("NameServer", nameServer); err != nil {
 		return fmt.Errorf("写入 NameServer 失败: %w", err)
 	}
-	// 清空 DHCP 分配的 DNS，确保静态 DNS 优先
 	_ = k.SetStringValue("DhcpNameServer", "")
 
-	// 通知 TCP/IP 驱动重新加载接口配置
 	notifyDNSChange(guid)
 	flushDNSCache()
 	return nil
+}
+
+// extractDNSIP 从 DNS 地址中提取可用于系统设置的 IP 地址。
+// - 普通 IPv4（8.8.8.8）→ 直接返回
+// - DoH URL（https://223.6.6.6/dns-query）→ 提取 host 部分
+// - DoH URL（https://dns.google/dns-query）→ 返回域名（Windows 10 2004+ 支持）
+// - DoT（dns.google 或 8.8.8.8@dns.google）→ 提取 IP 或域名
+func extractDNSIP(address string) (string, error) {
+	if address == "" {
+		return "", fmt.Errorf("地址为空")
+	}
+
+	// DoH URL：https://... 格式
+	if strings.HasPrefix(strings.ToLower(address), "https://") {
+		// 去掉 @TLSServerName 后缀
+		addr := address
+		if idx := strings.LastIndex(addr, "@"); idx != -1 {
+			addr = addr[:idx]
+		}
+		// 提取 host
+		addr = strings.TrimPrefix(strings.ToLower(addr), "https://")
+		if idx := strings.Index(addr, "/"); idx != -1 {
+			addr = addr[:idx]
+		}
+		// 去掉端口
+		if idx := strings.LastIndex(addr, ":"); idx != -1 {
+			addr = addr[:idx]
+		}
+		if addr == "" {
+			return "", fmt.Errorf("无法从 DoH URL 提取主机地址")
+		}
+		return addr, nil
+	}
+
+	// DoT IP@TLSServerName 格式：取 @ 前的 IP
+	if strings.Contains(address, "@") {
+		parts := strings.SplitN(address, "@", 2)
+		ip := strings.TrimSpace(parts[0])
+		if net.ParseIP(ip) != nil {
+			return ip, nil
+		}
+		return ip, nil
+	}
+
+	// 普通 IPv4 或域名，直接返回
+	return address, nil
 }
 
 // ResetToAuto 清空注册表 NameServer，恢复为 DHCP 自动获取 DNS。

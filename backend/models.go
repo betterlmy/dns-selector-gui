@@ -60,6 +60,7 @@ type NetworkAdapterInfo struct {
 	Name         string   `json:"name"`
 	InterfaceIdx int      `json:"interfaceIdx"`
 	Status       string   `json:"status"`
+	IPAddresses  []string `json:"ipAddresses"` // 适配器自身的 IPv4 地址列表
 	CurrentDNS   []string `json:"currentDNS"`
 }
 

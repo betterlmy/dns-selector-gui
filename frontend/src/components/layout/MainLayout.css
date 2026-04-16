@@ -1,9 +1,41 @@
 /* 整体布局：左侧固定，右侧独立滚动 */
 .main-layout {
   display: flex;
-  height: 100vh;       /* 撑满视口，不超出 */
-  overflow: hidden;    /* 防止整页滚动 */
+  height: 100vh;
+  overflow: hidden;
   gap: 0;
+  position: relative;
+}
+
+/* 侧边栏折叠/展开按钮 */
+.sidebar-toggle {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  z-index: 10;
+  width: 20px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.2s, background 0.15s;
+}
+
+/* 侧边栏展开时，按钮跟在侧边栏右边 */
+.main-layout:has(.sidebar) .sidebar-toggle {
+  left: 320px;
+}
+
+.sidebar-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* 左侧配置栏：固定高度，独立滚动，不随右侧内容滚动 */
@@ -21,15 +53,15 @@
   gap: 12px;
 }
 
-/* 右侧内容区：独立滚动 */
+/* 右侧内容区：flex column，tab-content 负责滚动 */
 .content {
   flex: 1;
   height: 100%;
   padding: 16px;
-  overflow-y: auto;
+  overflow: hidden;   /* 不整体滚动，由 tab-content 滚动 */
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -42,4 +74,43 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Tab 导航栏 */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn--active {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* Tab 内容区：独立滚动 */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }

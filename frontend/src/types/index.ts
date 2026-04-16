@@ -60,6 +60,7 @@ export interface NetworkAdapterInfo {
   name: string;
   interfaceIdx: number;
   status: string;
+  ipAddresses: string[]; // 适配器自身的 IPv4 地址
   currentDNS: string[];
 }
 

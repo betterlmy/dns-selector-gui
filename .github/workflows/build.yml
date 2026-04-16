@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+# 明确声明所需权限
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -12,6 +16,8 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史，用于 release notes
 
       - name: 配置 Go
         uses: actions/setup-go@v5
@@ -56,4 +62,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: build/bin/dns-selector-gui-${{ github.ref_name }}.exe
-          generate_release_notes: true
+          body: |
+            ## DNS Selector GUI ${{ github.ref_name }}
+
+            ### 下载
+            下载 `dns-selector-gui-${{ github.ref_name }}.exe` 直接运行，无需安装。
+
+            ### 系统要求
+            - Windows 10 1903+ / Windows 11
+            - 需要 WebView2 运行时（Windows 10/11 已内置）

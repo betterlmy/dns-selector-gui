@@ -2,10 +2,12 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: space-between;  /* 两个按钮分别靠左右 */
   flex-wrap: wrap;
 }
 
 .config-btn {
+  flex: 1;             /* 等宽分布 */
   padding: 6px 14px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
@@ -15,6 +17,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  text-align: center;
 }
 
 .config-btn:hover {

@@ -30,7 +30,11 @@ export function CurrentDNSDisplay() {
         adapters.map((a) => (
           <div className="adapter-card" key={a.name}>
             <div className="adapter-card-name">{a.name}</div>
-            <div className="adapter-card-status">状态: {a.status}</div>
+            {a.ipAddresses && a.ipAddresses.length > 0 && (
+              <div className="adapter-card-status">
+                IP：{a.ipAddresses.join('，')}
+              </div>
+            )}
             <div className="adapter-card-dns">
               {a.currentDNS && a.currentDNS.length > 0 ? (
                 a.currentDNS.map((dns) => (

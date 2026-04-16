@@ -306,9 +306,10 @@ func (a *AppService) GetNetworkAdapters() ([]NetworkAdapterInfo, error) {
 	return a.dnsConfig.GetAdapters()
 }
 
-// ApplyDNS 将指定 DNS 服务器设置到指定网络适配器。
-func (a *AppService) ApplyDNS(adapterName string, dnsAddress string) error {
-	return a.dnsConfig.SetDNS(adapterName, dnsAddress)
+// ApplyDNS 将指定 DNS 服务器设置到指定网络适配器，支持首选和备用 DNS。
+// primaryDNS 为首选，secondaryDNS 为备用（可为空）。
+func (a *AppService) ApplyDNS(adapterName string, primaryDNS string, secondaryDNS string) error {
+	return a.dnsConfig.SetDNS(adapterName, primaryDNS, secondaryDNS)
 }
 
 // RestoreDHCP 将指定网络适配器的 DNS 恢复为自动获取（DHCP）。

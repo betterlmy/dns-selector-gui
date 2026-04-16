@@ -36,24 +36,14 @@ export function RestoreDHCPButton() {
     }
   };
 
-  const openDialog = () => {
-    setSelected('');
-    setFeedback(null);
-    setShowDialog(true);
-  };
-
-  const closeDialog = () => {
-    setShowDialog(false);
-  };
-
   return (
     <>
-      <button className="btn-restore-dhcp" onClick={openDialog}>
+      <button className="btn-restore-dhcp" onClick={() => { setSelected(''); setFeedback(null); setShowDialog(true); }}>
         恢复默认 DNS
       </button>
 
       {showDialog && (
-        <div className="dialog-overlay" onClick={closeDialog}>
+        <div className="dialog-overlay" onClick={() => setShowDialog(false)}>
           <div className="dialog" onClick={(e) => e.stopPropagation()}>
             <h3 className="dialog-title">恢复 DHCP 自动获取</h3>
 
@@ -62,31 +52,33 @@ export function RestoreDHCPButton() {
               {(!adapters || adapters.length === 0) ? (
                 <div className="dns-empty">无可用网络适配器</div>
               ) : (
-                adapters.map((a) => (
-                  <label
-                    key={a.name}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '6px 0',
-                      cursor: 'pointer',
-                      fontSize: 13,
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="restore-adapter"
-                      value={a.name}
-                      checked={selected === a.name}
-                      onChange={() => setSelected(a.name)}
-                    />
-                    <span>{a.name}</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
-                      ({a.currentDNS?.join(', ') || 'DHCP'})
-                    </span>
-                  </label>
-                ))
+                <div className="adapter-list">
+                  {adapters.map((a) => (
+                    <label
+                      key={a.name}
+                      className={`adapter-option${selected === a.name ? ' adapter-option--selected' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="restore-adapter"
+                        value={a.name}
+                        checked={selected === a.name}
+                        onChange={() => setSelected(a.name)}
+                      />
+                      <div className="adapter-option__info">
+                        <span className="adapter-option__name">{a.name}</span>
+                        {a.ipAddresses?.length > 0 && (
+                          <span className="adapter-option__ip">
+                            IP：{a.ipAddresses.join('，')}
+                          </span>
+                        )}
+                        <span className="adapter-option__dns">
+                          当前 DNS：{a.currentDNS?.length ? a.currentDNS.join('，') : 'DHCP 自动获取'}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -97,7 +89,7 @@ export function RestoreDHCPButton() {
             )}
 
             <div className="dialog-actions">
-              <button className="btn-cancel" onClick={closeDialog} disabled={submitting}>
+              <button className="btn-cancel" onClick={() => setShowDialog(false)} disabled={submitting}>
                 {feedback?.type === 'success' ? '关闭' : '取消'}
               </button>
               {feedback?.type !== 'success' && (
