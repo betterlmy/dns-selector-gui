@@ -1,0 +1,45 @@
+/* 整体布局：左侧固定，右侧独立滚动 */
+.main-layout {
+  display: flex;
+  height: 100vh;       /* 撑满视口，不超出 */
+  overflow: hidden;    /* 防止整页滚动 */
+  gap: 0;
+}
+
+/* 左侧配置栏：固定高度，独立滚动，不随右侧内容滚动 */
+.sidebar {
+  width: 320px;
+  min-width: 280px;
+  height: 100%;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: 16px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 右侧内容区：独立滚动 */
+.content {
+  flex: 1;
+  height: 100%;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.content-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

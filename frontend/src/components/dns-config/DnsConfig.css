@@ -1,0 +1,135 @@
+/* CurrentDNSDisplay */
+.dns-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dns-display-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dns-display-header .section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-refresh {
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-refresh:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dns-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+}
+
+.adapter-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+}
+
+.adapter-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.adapter-card-status {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.adapter-card-dns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.dns-tag {
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--text-primary);
+}
+
+.dns-tag--empty {
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-style: italic;
+}
+
+/* RestoreDHCPButton */
+.btn-restore-dhcp {
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-restore-dhcp:hover {
+  background: var(--bg-tertiary);
+}
+
+.btn-restore-dhcp:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Feedback messages */
+.dns-feedback {
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.dns-feedback--success {
+  background: rgba(82, 196, 26, 0.1);
+  border: 1px solid var(--success-color, #52c41a);
+  color: var(--success-color, #52c41a);
+}
+
+.dns-feedback--error {
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+}
+
+.admin-warning {
+  padding: 8px 10px;
+  background: rgba(250, 173, 20, 0.1);
+  border: 1px solid var(--warning-color, #faad14);
+  border-radius: 4px;
+  color: var(--warning-color, #faad14);
+  font-size: 12px;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "DNS Selector",
+  "outputfilename": "dns-selector-gui",
+  "frontend:install": "npm.cmd install",
+  "frontend:build": "npm.cmd run build",
+  "frontend:dev:watcher": "npm.cmd run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "zane",
+    "email": "betterlmy@icloud.com"
+  },
+  "info": {
+    "companyName": "betterlmy",
+    "productName": "DNS Selector",
+    "productVersion": "0.1.0",
+    "copyright": "betterlmy",
+    "comments": "Windows DNS Selector GUI - A visual DNS benchmarking tool"
+  },
+  "wailsjsdir": "./frontend",
+  "assetdir": "./frontend/dist"
+}
