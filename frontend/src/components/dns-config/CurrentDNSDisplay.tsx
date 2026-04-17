@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { GetNetworkAdapters } from '../../../wailsjs/go/backend/AppService';
 import './DnsConfig.css';
@@ -6,20 +7,28 @@ export function CurrentDNSDisplay() {
   const adapters = useAppStore((s) => s.adapters);
   const setAdapters = useAppStore((s) => s.setAdapters);
 
-  const handleRefresh = async () => {
+  const loadAdapters = async () => {
     try {
       const list = await GetNetworkAdapters();
       setAdapters(list ?? []);
-    } catch {
-      // silently ignore
+    } catch (err) {
+      console.error('GetNetworkAdapters failed:', err);
+      setAdapters([]);
     }
   };
+
+  // 组件挂载时自动加载
+  useEffect(() => {
+    if (adapters.length === 0) {
+      loadAdapters();
+    }
+  }, []);
 
   return (
     <div className="dns-display">
       <div className="dns-display-header">
         <span className="section-label">当前 DNS 配置</span>
-        <button className="btn-refresh" onClick={handleRefresh}>
+        <button className="btn-refresh" onClick={loadAdapters}>
           刷新
         </button>
       </div>

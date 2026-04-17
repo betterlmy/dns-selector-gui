@@ -1,9 +1,9 @@
 {
   "name": "DNS Selector",
   "outputfilename": "dns-selector-gui",
-  "frontend:install": "npm.cmd install",
-  "frontend:build": "npm.cmd run build",
-  "frontend:dev:watcher": "npm.cmd run dev",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
     "name": "zane",
@@ -14,8 +14,11 @@
     "productName": "DNS Selector",
     "productVersion": "0.1.0",
     "copyright": "betterlmy",
-    "comments": "Windows DNS Selector GUI - A visual DNS benchmarking tool"
+    "comments": "Cross-platform DNS benchmarking and selector tool"
   },
   "wailsjsdir": "./frontend",
-  "assetdir": "./frontend/dist"
+  "assetdir": "./frontend/dist",
+  "mac": {
+    "identity": "-"
+  }
 }

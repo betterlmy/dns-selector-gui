@@ -1,3 +1,5 @@
+//go:build windows
+
 package main
 
 import (
@@ -5,9 +7,10 @@ import (
 	"syscall"
 	"unsafe"
 
+	"strings"
+
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
-	"strings"
 )
 
 const (

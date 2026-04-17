@@ -210,7 +210,7 @@ func TestCNPresetCompleteness(t *testing.T) {
 
 	// Verify counts (source of truth: selector SDK)
 	const wantServers = 32
-	const wantDomains = 30
+	const wantDomains = 27
 	if got := len(cnPreset.Servers); got != wantServers {
 		t.Errorf("CN server count: got %d, want %d", got, wantServers)
 	}

@@ -1,0 +1,24 @@
+{
+  "currentPreset": "global",
+  "customServers": [
+    {
+      "protocol": "udp",
+      "address": "9.9.9.9"
+    },
+    {
+      "protocol": "doh",
+      "address": "https://dns.example.com/dns-query",
+      "tlsServerName": "dns.example.com"
+    }
+  ],
+  "customDomains": [
+    "example.com",
+    "test.org"
+  ],
+  "testParams": {
+    "queries": 20,
+    "warmup": 3,
+    "concurrency": 50,
+    "timeout": 5
+  }
+}

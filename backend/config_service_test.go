@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -182,10 +183,13 @@ func TestSaveResults_AndLoadResults_RoundTrip(t *testing.T) {
 }
 
 func TestLoadResults_NonexistentFile_ReturnsNil(t *testing.T) {
-	// LoadResults uses defaultResultsPath() which depends on APPDATA.
-	// We test the behavior by setting APPDATA to a temp dir with no results file.
+	// LoadResults uses defaultResultsPath() which depends on os.UserConfigDir().
+	// On macOS this is $HOME/Library/Application Support, on Linux $XDG_CONFIG_HOME,
+	// on Windows %APPDATA%. We redirect HOME/XDG_CONFIG_HOME/APPDATA to a temp dir.
 	dir := t.TempDir()
-	t.Setenv("APPDATA", dir)
+	t.Setenv("APPDATA", dir)                                  // Windows
+	t.Setenv("HOME", dir)                                     // macOS fallback
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(dir, "config")) // Linux
 
 	svc := NewConfigService()
 	result, err := svc.LoadResults()
@@ -194,5 +198,50 @@ func TestLoadResults_NonexistentFile_ReturnsNil(t *testing.T) {
 	}
 	if result != nil {
 		t.Errorf("LoadResults: got %+v, want nil", result)
+	}
+}
+
+// Task 5.2: 单元测试：跨平台配置路径
+// Requirements: 1.6
+
+func TestDefaultConfigPath_NonEmpty(t *testing.T) {
+	p := defaultConfigPath()
+	if p == "" {
+		t.Fatal("defaultConfigPath() returned empty string")
+	}
+}
+
+func TestDefaultResultsPath_NonEmpty(t *testing.T) {
+	p := defaultResultsPath()
+	if p == "" {
+		t.Fatal("defaultResultsPath() returned empty string")
+	}
+}
+
+func TestDefaultConfigPath_ContainsDnsSelectorGui(t *testing.T) {
+	p := defaultConfigPath()
+	if !strings.Contains(p, filepath.Join("dns-selector-gui")) {
+		t.Errorf("defaultConfigPath() = %q, want path containing 'dns-selector-gui'", p)
+	}
+}
+
+func TestDefaultResultsPath_ContainsDnsSelectorGui(t *testing.T) {
+	p := defaultResultsPath()
+	if !strings.Contains(p, filepath.Join("dns-selector-gui")) {
+		t.Errorf("defaultResultsPath() = %q, want path containing 'dns-selector-gui'", p)
+	}
+}
+
+func TestDefaultConfigPath_EndsWithConfigJson(t *testing.T) {
+	p := defaultConfigPath()
+	if filepath.Base(p) != "config.json" {
+		t.Errorf("defaultConfigPath() = %q, want path ending with 'config.json'", p)
+	}
+}
+
+func TestDefaultResultsPath_EndsWithLastResultsJson(t *testing.T) {
+	p := defaultResultsPath()
+	if filepath.Base(p) != "last_results.json" {
+		t.Errorf("defaultResultsPath() = %q, want path ending with 'last_results.json'", p)
 	}
 }

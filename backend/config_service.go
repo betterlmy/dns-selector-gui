@@ -24,14 +24,24 @@ func NewConfigService() *ConfigService {
 	}
 }
 
-// defaultConfigPath 返回默认配置文件路径：%APPDATA%/dns-selector-gui/config.json
+// defaultConfigPath 返回默认配置文件路径：{configDir}/dns-selector-gui/config.json
+// 使用 os.UserConfigDir() 获取跨平台配置目录，失败时回退到当前目录。
 func defaultConfigPath() string {
-	return filepath.Join(os.Getenv("APPDATA"), "dns-selector-gui", "config.json")
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		configDir = "."
+	}
+	return filepath.Join(configDir, "dns-selector-gui", "config.json")
 }
 
-// defaultResultsPath 返回默认测试结果文件路径：%APPDATA%/dns-selector-gui/last_results.json
+// defaultResultsPath 返回默认测试结果文件路径：{configDir}/dns-selector-gui/last_results.json
+// 使用 os.UserConfigDir() 获取跨平台配置目录，失败时回退到当前目录。
 func defaultResultsPath() string {
-	return filepath.Join(os.Getenv("APPDATA"), "dns-selector-gui", "last_results.json")
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		configDir = "."
+	}
+	return filepath.Join(configDir, "dns-selector-gui", "last_results.json")
 }
 
 // GetDefaultPath 返回默认配置文件路径。
@@ -108,7 +118,7 @@ func (c *ConfigService) UpdateConfig(config *AppConfig) error {
 	return c.Save(path)
 }
 
-// SaveResults 将测试结果保存到 %APPDATA%/dns-selector-gui/last_results.json。
+// SaveResults 将测试结果保存到 {configDir}/dns-selector-gui/last_results.json。
 func (c *ConfigService) SaveResults(results *TestResultsData) error {
 	if results == nil {
 		return fmt.Errorf("测试结果不能为空")
@@ -137,7 +147,7 @@ func (c *ConfigService) SaveResults(results *TestResultsData) error {
 	return nil
 }
 
-// LoadResults 从 %APPDATA%/dns-selector-gui/last_results.json 加载测试结果。
+// LoadResults 从 {configDir}/dns-selector-gui/last_results.json 加载测试结果。
 // 如果文件不存在，返回 nil（不报错）。
 func (c *ConfigService) LoadResults() (*TestResultsData, error) {
 	path := defaultResultsPath()

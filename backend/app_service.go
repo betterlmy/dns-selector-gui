@@ -11,7 +11,6 @@ import (
 
 	"github.com/betterlmy/dns-selector/selector"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
-	"golang.org/x/sys/windows/registry"
 )
 
 // AppService 是 Wails 绑定的主服务，负责协调所有后端子服务。
@@ -21,6 +20,7 @@ type AppService struct {
 	config          *ConfigService
 	dnsConfig       *DNSConfigService
 	preset          *PresetService
+	platform        PlatformProvider
 	testParams      TestParams
 	lastResults     *TestResultsData
 	cancelBenchmark context.CancelFunc
@@ -29,11 +29,13 @@ type AppService struct {
 
 // NewAppService 创建 AppService 实例，初始化所有子服务。
 func NewAppService() *AppService {
+	platform := NewPlatformProvider()
 	return &AppService{
 		benchmark:  NewBenchmarkService(),
 		config:     NewConfigService(),
-		dnsConfig:  NewDNSConfigService(),
+		dnsConfig:  NewDNSConfigService(platform),
 		preset:     NewPresetService(),
+		platform:   platform,
 		testParams: DefaultTestParams(),
 	}
 }
@@ -319,7 +321,7 @@ func (a *AppService) RestoreDHCP(adapterName string) error {
 
 // IsAdmin 返回当前进程是否具有管理员权限。
 func (a *AppService) IsAdmin() bool {
-	return a.dnsConfig.CheckAdmin()
+	return a.platform.CheckAdmin()
 }
 
 // --- 配置导入导出 ---
@@ -367,25 +369,10 @@ func (a *AppService) ExportConfig(filePath string) error {
 
 // --- 主题 ---
 
-// GetSystemTheme 通过读取注册表检测 Windows 系统主题设置。
+// GetSystemTheme 检测系统主题设置。
 // 返回 "dark"（深色模式）或 "light"（浅色模式）。
 func (a *AppService) GetSystemTheme() string {
-	k, err := registry.OpenKey(registry.CURRENT_USER,
-		`Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`,
-		registry.QUERY_VALUE)
-	if err != nil {
-		return "light"
-	}
-	defer k.Close()
-
-	val, _, err := k.GetIntegerValue("AppsUseLightTheme")
-	if err != nil {
-		return "light"
-	}
-	if val == 0 {
-		return "dark"
-	}
-	return "light"
+	return a.platform.GetSystemTheme()
 }
 
 // --- 内部辅助方法 ---
