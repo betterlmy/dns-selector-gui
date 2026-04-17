@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/betterlmy/dns-selector/selector"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -327,7 +328,24 @@ func (a *AppService) IsAdmin() bool {
 // --- 配置导入导出 ---
 
 // ImportConfig 读取 JSON 配置文件，验证后应用到当前状态。
+// 如果 filePath 为空或无效，弹出文件选择对话框。
 func (a *AppService) ImportConfig(filePath string) error {
+	if filePath == "" || filePath == "undefined" {
+		selected, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+			Title: "导入配置",
+			Filters: []wailsRuntime.FileFilter{
+				{DisplayName: "JSON 文件", Pattern: "*.json"},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("打开文件对话框失败: %w", err)
+		}
+		if selected == "" {
+			return nil // 用户取消
+		}
+		filePath = selected
+	}
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("读取配置文件失败: %w", err)
@@ -346,8 +364,27 @@ func (a *AppService) ImportConfig(filePath string) error {
 	return a.autoSaveConfig()
 }
 
-// ExportConfig 将当前配置（含预设内容）导出为 JSON 文件。
+// ExportConfig 将当前配置导出为 JSON 文件。
+// 如果 filePath 为空，弹出文件保存对话框让用户选择路径。
 func (a *AppService) ExportConfig(filePath string) error {
+	if filePath == "" || filePath == "dns-selector-config.json" {
+		defaultName := fmt.Sprintf("dns-selector-config-%s.json", time.Now().Format("06-01-02-15-04-05"))
+		selected, err := wailsRuntime.SaveFileDialog(a.ctx, wailsRuntime.SaveDialogOptions{
+			DefaultFilename: defaultName,
+			Title:           "导出配置",
+			Filters: []wailsRuntime.FileFilter{
+				{DisplayName: "JSON 文件", Pattern: "*.json"},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("打开保存对话框失败: %w", err)
+		}
+		if selected == "" {
+			return nil // 用户取消
+		}
+		filePath = selected
+	}
+
 	cfg := a.buildExportConfig()
 
 	data, err := json.MarshalIndent(cfg, "", "  ")

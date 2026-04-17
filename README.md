@@ -1,5 +1,9 @@
 # DNS Selector GUI
 
+<p align="center">
+  <img src="assets/icon.svg" width="128" alt="DNS Selector GUI">
+</p>
+
 跨平台 DNS 择优器桌面应用 —— 开源 CLI 项目 [dns-selector](https://github.com/betterlmy/dns-selector) 的图形化版本。
 
 支持 Windows / macOS / Linux 三平台（amd64 + arm64），通过图形界面测试多个 DNS 服务器（UDP / DoT / DoH）的响应速度、稳定性和正确性，帮助你选择最优 DNS 并一键应用到系统。

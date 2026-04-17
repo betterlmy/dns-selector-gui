@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import {
   ImportConfig,
@@ -20,23 +20,12 @@ export function ConfigToolbar() {
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleImportClick = async () => {
     setError('');
     setImporting(true);
     try {
-      // Wails ImportConfig expects a file path.
-      // In a real Wails app, we'd use the Go-side file dialog.
-      // For this implementation, we pass the file.name.
-      await ImportConfig(file.name);
+      await ImportConfig('');
 
       // Refresh all state after import
       const [preset, servers, domains, params] = await Promise.all([
@@ -53,8 +42,6 @@ export function ConfigToolbar() {
       setError(typeof err === 'string' ? err : err?.message || '导入配置失败');
     } finally {
       setImporting(false);
-      // Reset file input so same file can be selected again
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -62,7 +49,7 @@ export function ConfigToolbar() {
     setError('');
     setExporting(true);
     try {
-      await ExportConfig('dns-selector-config.json');
+      await ExportConfig('');
     } catch (err: any) {
       setError(typeof err === 'string' ? err : err?.message || '导出配置失败');
     } finally {
@@ -72,13 +59,6 @@ export function ConfigToolbar() {
 
   return (
     <div className="config-toolbar">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        style={{ display: 'none' }}
-        onChange={handleFileSelected}
-      />
       <button
         className="config-btn"
         onClick={handleImportClick}

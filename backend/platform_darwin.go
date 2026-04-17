@@ -5,7 +5,6 @@ package backend
 import (
 	"fmt"
 	"net"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -138,9 +137,10 @@ func (d *darwinPlatform) ResetToAuto(adapterName string) error {
 	return nil
 }
 
-// CheckAdmin 检查当前进程是否以 root 权限运行。
+// CheckAdmin 检查当前进程是否有权限修改 DNS 配置。
+// macOS 上 networksetup 不需要 root 权限，普通用户即可修改 DNS。
 func (d *darwinPlatform) CheckAdmin() bool {
-	return os.Getuid() == 0
+	return true
 }
 
 // GetSystemTheme 通过 defaults read 检测 macOS 系统主题。

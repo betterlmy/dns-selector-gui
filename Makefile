@@ -24,22 +24,24 @@ endef
 define wails_build_mac
 	@echo ">>> 构建 $(2)..."
 	wails build -clean -platform $(1) -o $(2) -nopackage
-	@APP="$(BUILD)/DNS Selector.app"; \
-	 rm -rf "$$APP"; \
-	 mkdir -p "$$APP/Contents/MacOS" "$$APP/Contents/Resources"; \
-	 cp "$(BUILD)/$(2)" "$$APP/Contents/MacOS/dns-selector-gui"; \
-	 echo '<?xml version="1.0" encoding="UTF-8"?>' > "$$APP/Contents/Info.plist"; \
-	 echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$$APP/Contents/Info.plist"; \
-	 echo '<plist version="1.0"><dict>' >> "$$APP/Contents/Info.plist"; \
-	 echo '<key>CFBundleExecutable</key><string>dns-selector-gui</string>' >> "$$APP/Contents/Info.plist"; \
-	 echo '<key>CFBundleIdentifier</key><string>com.betterlmy.dns-selector-gui</string>' >> "$$APP/Contents/Info.plist"; \
-	 echo '<key>CFBundleName</key><string>DNS Selector</string>' >> "$$APP/Contents/Info.plist"; \
-	 echo '<key>CFBundlePackageType</key><string>APPL</string>' >> "$$APP/Contents/Info.plist"; \
-	 echo '<key>CFBundleVersion</key><string>$(VERSION)</string>' >> "$$APP/Contents/Info.plist"; \
-	 echo '<key>CFBundleShortVersionString</key><string>$(VERSION)</string>' >> "$$APP/Contents/Info.plist"; \
-	 echo '</dict></plist>' >> "$$APP/Contents/Info.plist"; \
-	 xattr -cr "$$APP"; \
-	 codesign --force --deep --sign - "$$APP"
+	@rm -rf "$(BUILD)/DNS Selector.app"
+	@mkdir -p "$(BUILD)/DNS Selector.app/Contents/MacOS"
+	@mkdir -p "$(BUILD)/DNS Selector.app/Contents/Resources"
+	@cp "$(BUILD)/$(2)" "$(BUILD)/DNS Selector.app/Contents/MacOS/dns-selector-gui"
+	@cp assets/icons.icns "$(BUILD)/DNS Selector.app/Contents/Resources/iconfile.icns"
+	@echo '<?xml version="1.0" encoding="UTF-8"?>' > "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<plist version="1.0"><dict>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<key>CFBundleExecutable</key><string>dns-selector-gui</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<key>CFBundleIdentifier</key><string>com.betterlmy.dns-selector-gui</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<key>CFBundleName</key><string>DNS Selector</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<key>CFBundleIconFile</key><string>iconfile</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<key>CFBundlePackageType</key><string>APPL</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<key>CFBundleVersion</key><string>$(VERSION)</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '<key>CFBundleShortVersionString</key><string>$(VERSION)</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@echo '</dict></plist>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
+	@xattr -cr "$(BUILD)/DNS Selector.app"
+	@codesign --force --deep --sign - "$(BUILD)/DNS Selector.app"
 	@echo ">>> 完成: $(BUILD)/DNS Selector.app"
 endef
 
@@ -69,6 +71,10 @@ all: build
 deps:
 	@cd frontend && $(NPM) install
 	@go mod download
+	@mkdir -p build/bin build/darwin build/windows
+	@cp assets/appicon.png build/appicon.png
+	@cp assets/icons.icns build/darwin/icons.icns
+	@cp assets/icon.ico build/windows/icon.ico
 
 frontend: deps
 	@mkdir -p frontend/dist

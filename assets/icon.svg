@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="256" y1="80" x2="256" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#E0E7FF" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 圆角背景 -->
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+
+  <!-- 盾牌外形 -->
+  <path d="M256 72 L400 132 C400 132 412 280 256 432 C100 280 112 132 112 132 Z"
+        fill="url(#shield)" stroke="white" stroke-width="4" stroke-opacity="0.3"/>
+
+  <!-- 中心 DNS 节点网络 -->
+  <!-- 连接线 -->
+  <line x1="256" y1="200" x2="192" y2="296" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="256" y1="200" x2="320" y2="296" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="192" y1="296" x2="320" y2="296" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+  <line x1="256" y1="200" x2="256" y2="348" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+  <line x1="192" y1="296" x2="256" y2="348" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+  <line x1="320" y1="296" x2="256" y2="348" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- 顶部主节点（最优 DNS） -->
+  <circle cx="256" cy="200" r="28" fill="#4F46E5"/>
+  <circle cx="256" cy="200" r="16" fill="white"/>
+  <circle cx="256" cy="200" r="8" fill="#4F46E5"/>
+
+  <!-- 左下节点 -->
+  <circle cx="192" cy="296" r="22" fill="#6366F1"/>
+  <circle cx="192" cy="296" r="12" fill="white"/>
+  <circle cx="192" cy="296" r="5" fill="#6366F1"/>
+
+  <!-- 右下节点 -->
+  <circle cx="320" cy="296" r="22" fill="#6366F1"/>
+  <circle cx="320" cy="296" r="12" fill="white"/>
+  <circle cx="320" cy="296" r="5" fill="#6366F1"/>
+
+  <!-- 底部节点 -->
+  <circle cx="256" cy="348" r="18" fill="#818CF8"/>
+  <circle cx="256" cy="348" r="10" fill="white"/>
+  <circle cx="256" cy="348" r="4" fill="#818CF8"/>
+
+  <!-- 顶部主节点上的对勾（表示"最优选择"） -->
+  <path d="M244 200 L253 209 L270 190" stroke="#10B981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- DNS 文字 -->
+  <text x="256" y="160" text-anchor="middle" font-family="SF Pro Display, Helvetica Neue, Arial, sans-serif"
+        font-size="36" font-weight="700" fill="#4F46E5" letter-spacing="4" opacity="0.8">DNS</text>
+</svg>
