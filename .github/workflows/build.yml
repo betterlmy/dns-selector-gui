@@ -89,7 +89,10 @@ jobs:
         run: npm ci
 
       - name: Generate Wails bindings
-        run: wails generate module
+        run: |
+          mkdir -p frontend/dist
+          touch frontend/dist/.gitkeep
+          wails generate module
 
       - name: Build application (Windows/Linux)
         if: matrix.goos != 'darwin'
