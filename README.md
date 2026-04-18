@@ -93,7 +93,7 @@ dns-selector-win/
 |------|---------|
 | Windows | WebView2 运行时（Win10 1803+ / Win11 已内置） |
 | macOS | Xcode Command Line Tools |
-| Linux | `libgtk-3-dev` `libwebkit2gtk-4.0-dev` |
+| Linux | Ubuntu 24.04+: `libgtk-3-dev` `libwebkit2gtk-4.1-dev` |
 
 ## 快速开始
 
