@@ -2,6 +2,7 @@
 # 支持: Windows / macOS / Linux × amd64 / arm64
 
 APP_NAME := dns-selector-gui
+APP_DISPLAY_NAME := DNS优选器
 VERSION  := 0.1.0
 BUILD    := build/bin
 GOCACHE ?= $(CURDIR)/.cache/go-build
@@ -44,36 +45,37 @@ endef
 
 # $(1)=binary filename
 define package_mac_app
-	@rm -rf "$(BUILD)/DNS Selector.app"
-	@mkdir -p "$(BUILD)/DNS Selector.app/Contents/MacOS"
-	@mkdir -p "$(BUILD)/DNS Selector.app/Contents/Resources"
-	@cp "$(BUILD)/$(1)" "$(BUILD)/DNS Selector.app/Contents/MacOS/dns-selector-gui"
-	@cp assets/icons.icns "$(BUILD)/DNS Selector.app/Contents/Resources/iconfile.icns"
-	@echo '<?xml version="1.0" encoding="UTF-8"?>' > "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<plist version="1.0"><dict>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<key>CFBundleExecutable</key><string>dns-selector-gui</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<key>CFBundleIdentifier</key><string>com.betterlmy.dns-selector-gui</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<key>CFBundleName</key><string>DNS Selector</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<key>CFBundleIconFile</key><string>iconfile</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<key>CFBundlePackageType</key><string>APPL</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<key>CFBundleVersion</key><string>$(VERSION)</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '<key>CFBundleShortVersionString</key><string>$(VERSION)</string>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@echo '</dict></plist>' >> "$(BUILD)/DNS Selector.app/Contents/Info.plist"
-	@xattr -cr "$(BUILD)/DNS Selector.app"
-	@codesign --force --deep --sign - "$(BUILD)/DNS Selector.app"
-	@echo ">>> 完成: $(BUILD)/DNS Selector.app"
+	@rm -rf "$(BUILD)/$(APP_DISPLAY_NAME).app"
+	@mkdir -p "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/MacOS"
+	@mkdir -p "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Resources"
+	@cp "$(BUILD)/$(1)" "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/MacOS/dns-selector-gui"
+	@cp assets/icons.icns "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Resources/iconfile.icns"
+	@echo '<?xml version="1.0" encoding="UTF-8"?>' > "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<plist version="1.0"><dict>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundleExecutable</key><string>dns-selector-gui</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundleIdentifier</key><string>com.betterlmy.dns-selector-gui</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundleName</key><string>$(APP_DISPLAY_NAME)</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundleDisplayName</key><string>$(APP_DISPLAY_NAME)</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundleIconFile</key><string>iconfile</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundlePackageType</key><string>APPL</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundleVersion</key><string>$(VERSION)</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '<key>CFBundleShortVersionString</key><string>$(VERSION)</string>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@echo '</dict></plist>' >> "$(BUILD)/$(APP_DISPLAY_NAME).app/Contents/Info.plist"
+	@xattr -cr "$(BUILD)/$(APP_DISPLAY_NAME).app"
+	@codesign --force --deep --sign - "$(BUILD)/$(APP_DISPLAY_NAME).app"
+	@echo ">>> 完成: $(BUILD)/$(APP_DISPLAY_NAME).app"
 endef
 
 # $(1)=arch
 define make_dmg
 	@echo ">>> 生成 DMG ($(1))..."
 	create-dmg \
-		--volname "DNS Selector GUI" \
+		--volname "$(APP_DISPLAY_NAME)" \
 		--window-pos 200 120 --window-size 600 400 \
 		--icon-size 100 --app-drop-link 425 178 \
 		"$(BUILD)/$(APP_NAME)-$(VERSION)-darwin-$(1).dmg" \
-		"$(BUILD)/DNS Selector.app"
+		"$(BUILD)/$(APP_DISPLAY_NAME).app"
 	@echo ">>> 完成: $(BUILD)/$(APP_NAME)-$(VERSION)-darwin-$(1).dmg"
 endef
 

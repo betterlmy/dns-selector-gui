@@ -21,7 +21,7 @@ func main() {
 
 	// 配置并启动 Wails 应用
 	err := wails.Run(&options.App{
-		Title:     "DNS Selector v0.1.0", // 窗口标题
+		Title:     "DNS优选器",             // 窗口标题
 		Width:     1280,                  // 默认窗口宽度（16:9）
 		Height:    720,                   // 默认窗口高度（16:9）
 		MinWidth:  800,                   // 最小窗口宽度
