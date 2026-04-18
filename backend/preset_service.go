@@ -27,14 +27,13 @@ func (p *PresetService) GetCurrentPreset() string {
 	return p.currentPreset
 }
 
-// SwitchPreset 切换到指定预设方案（"cn" 或 "global"），同时清空所有自定义服务器和域名。
+// SwitchPreset 切换到指定预设方案（"cn" 或 "global"）。
+// 自定义服务器和域名不受影响，始终保留。
 func (p *PresetService) SwitchPreset(name string) error {
 	if name != "cn" && name != "global" {
 		return fmt.Errorf("未知的预设方案: %q，有效值为 \"cn\" 和 \"global\"", name)
 	}
 	p.currentPreset = name
-	p.customServers = []selector.DNSServer{}
-	p.customDomains = []string{}
 	return nil
 }
 
@@ -56,20 +55,37 @@ func (p *PresetService) GetMergedDomains() []string {
 	return merged
 }
 
-// IsPresetItem 判断给定的地址或域名是否属于当前预设（属于预设的项不可删除）。
-func (p *PresetService) IsPresetItem(address string) bool {
+// serverKey 返回服务器的复合唯一标识：protocol|address|tlsServerName。
+func serverKey(protocol, address, tlsServerName string) string {
+	return protocol + "|" + address + "|" + tlsServerName
+}
+
+// IsPresetServer 判断给定服务器是否属于当前预设（属于预设的项不可删除）。
+func (p *PresetService) IsPresetServer(protocol, address, tlsServerName string) bool {
 	preset, _ := GetPreset(p.currentPreset)
+	key := serverKey(protocol, address, tlsServerName)
 	for _, s := range preset.Servers {
-		if s.Address == address {
-			return true
-		}
-	}
-	for _, d := range preset.Domains {
-		if d == address {
+		if serverKey(s.Protocol, s.Address, s.TLSServerName) == key {
 			return true
 		}
 	}
 	return false
+}
+
+// IsPresetDomain 判断给定域名是否属于当前预设。
+func (p *PresetService) IsPresetDomain(domain string) bool {
+	preset, _ := GetPreset(p.currentPreset)
+	for _, d := range preset.Domains {
+		if d == domain {
+			return true
+		}
+	}
+	return false
+}
+
+// IsPresetItem 判断给定的地址或域名是否属于当前预设（向后兼容，仅用于域名判断）。
+func (p *PresetService) IsPresetItem(address string) bool {
+	return p.IsPresetDomain(address)
 }
 
 // AddCustomServer 向自定义服务器列表追加一个 DNS 服务器。
@@ -78,14 +94,15 @@ func (p *PresetService) AddCustomServer(server selector.DNSServer) error {
 	return nil
 }
 
-// RemoveCustomServer 按地址删除一个自定义服务器。
-// 如果该地址属于预设服务器，返回错误。
-func (p *PresetService) RemoveCustomServer(address string) error {
-	if p.IsPresetItem(address) {
+// RemoveCustomServer 按复合标识（protocol+address+tlsServerName）删除一个自定义服务器。
+// 如果该服务器属于预设，返回错误。
+func (p *PresetService) RemoveCustomServer(protocol, address, tlsServerName string) error {
+	if p.IsPresetServer(protocol, address, tlsServerName) {
 		return fmt.Errorf("无法删除预设服务器")
 	}
+	key := serverKey(protocol, address, tlsServerName)
 	for i, s := range p.customServers {
-		if s.Address == address {
+		if serverKey(s.Protocol, s.Address, s.TLSServerName) == key {
 			p.customServers = append(p.customServers[:i], p.customServers[i+1:]...)
 			return nil
 		}

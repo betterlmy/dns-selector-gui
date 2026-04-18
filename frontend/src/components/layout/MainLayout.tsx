@@ -10,6 +10,7 @@ import { ResultsTable } from '../benchmark/ResultsTable';
 import { ScoreChart } from '../benchmark/ScoreChart';
 import { CurrentDNSDisplay } from '../dns-config/CurrentDNSDisplay';
 import { RestoreDHCPButton } from '../dns-config/RestoreDHCPButton';
+import { ErrorBanner } from './ErrorBanner';
 import './MainLayout.css';
 
 type Tab = 'results' | 'dns';
@@ -52,6 +53,8 @@ export function MainLayout() {
 
       {/* 右侧主区域 */}
       <main className="content">
+        <ErrorBanner />
+
         <div className="content-section">
           <BenchmarkControl />
         </div>

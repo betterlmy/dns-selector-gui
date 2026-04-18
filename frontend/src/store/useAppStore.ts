@@ -18,6 +18,7 @@ import {
   GetSystemTheme,
 } from '../../wailsjs/go/backend/AppService';
 import { applyTheme } from '../styles/theme';
+import { getErrorMessage } from '../utils/errors';
 
 interface AppState {
   // 预设
@@ -41,6 +42,9 @@ interface AppState {
 
   // 主题
   theme: 'light' | 'dark';
+
+  // 全局错误提示
+  errorMsg: string | null;
 }
 
 interface AppActions {
@@ -57,6 +61,8 @@ interface AppActions {
   setAdapters: (adapters: NetworkAdapterInfo[]) => void;
   setIsAdmin: (isAdmin: boolean) => void;
   setTheme: (theme: 'light' | 'dark') => void;
+  setError: (msg: string) => void;
+  clearError: () => void;
 }
 
 export const useAppStore = create<AppState & AppActions>()((set) => ({
@@ -76,6 +82,7 @@ export const useAppStore = create<AppState & AppActions>()((set) => ({
   adapters: [],
   isAdmin: false,
   theme: 'light',
+  errorMsg: null,
 
   // --- Actions ---
 
@@ -115,7 +122,7 @@ export const useAppStore = create<AppState & AppActions>()((set) => ({
         theme,
       });
     } catch (err) {
-      console.error('Failed to initialize app store:', err);
+      set({ errorMsg: getErrorMessage(err, '应用初始化失败，请重试。') });
     }
   },
 
@@ -129,4 +136,6 @@ export const useAppStore = create<AppState & AppActions>()((set) => ({
   setAdapters: (adapters) => set({ adapters }),
   setIsAdmin: (isAdmin) => set({ isAdmin }),
   setTheme: (theme) => set({ theme }),
+  setError: (msg) => set({ errorMsg: msg }),
+  clearError: () => set({ errorMsg: null }),
 }));

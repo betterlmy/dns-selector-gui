@@ -43,6 +43,12 @@
   border-radius: 6px;
 }
 
+.dns-empty--error {
+  color: var(--error-color);
+  border-color: var(--error-color);
+  background: rgba(255, 77, 79, 0.08);
+}
+
 .adapter-card {
   padding: 10px 12px;
   border: 1px solid var(--border-color);

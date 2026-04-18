@@ -5,11 +5,13 @@ import {
   GetDomainList,
 } from '../../../wailsjs/go/backend/AppService';
 import { AddDomainDialog } from './AddDomainDialog';
+import { getErrorMessage } from '../../utils/errors';
 import './DomainList.css';
 
 export function DomainList() {
   const domains = useAppStore((s) => s.domains);
   const setDomains = useAppStore((s) => s.setDomains);
+  const setError = useAppStore((s) => s.setError);
   const benchmarkRunning = useAppStore((s) => s.benchmarkRunning);
   const [showDialog, setShowDialog] = useState(false);
 
@@ -19,7 +21,7 @@ export function DomainList() {
       const updated = await GetDomainList();
       setDomains(updated);
     } catch (err) {
-      console.error('Failed to remove domain:', err);
+      setError(getErrorMessage(err, '删除测试域名失败。'));
     }
   };
 

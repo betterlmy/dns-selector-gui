@@ -89,7 +89,12 @@ export function ResultsTable() {
     return '';
   };
   const canApply = (item: TestResultItem) =>
-    !item.isTimeout && item.score > 0 && !benchmarkRunning;
+    !item.isTimeout && item.score > 0 && !benchmarkRunning && item.canApplyToSystem;
+  const applyTitle = (item: TestResultItem) => {
+    if (!item.canApplyToSystem) return '该服务器可测速，但无法直接写入系统 DNS（需配置 BootstrapIP）';
+    if (item.isTimeout || item.score === 0) return undefined;
+    return '双击应用为系统 DNS';
+  };
   const handleApply = (item: TestResultItem) => {
     if (!canApply(item)) return;
     setApplyTarget({ address: item.address, name: item.name });
@@ -135,7 +140,7 @@ export function ResultsTable() {
                 key={`${item.address}-${item.protocol}`}
                 className={`${rowClass(item, idx)} result-row${canApply(item) ? ' result-row--clickable' : ''}`}
                 onDoubleClick={() => handleApply(item)}
-                title={canApply(item) ? '双击应用为系统 DNS' : undefined}
+                title={applyTitle(item)}
               >
                 <td title={item.name}>{item.name}</td>
                 <td className="addr-cell" title={item.address}>{item.address}</td>
@@ -159,6 +164,8 @@ export function ResultsTable() {
                   <button
                     className="apply-dns-btn"
                     onClick={(e) => { e.stopPropagation(); handleApply(item); }}
+                    disabled={!canApply(item)}
+                    title={applyTitle(item)}
                     tabIndex={-1}
                   >
                     应用

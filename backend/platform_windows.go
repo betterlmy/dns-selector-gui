@@ -161,17 +161,9 @@ func (w *windowsPlatform) SetDNS(adapterName string, primaryDNS string, secondar
 		return fmt.Errorf("首选 DNS 不能为空")
 	}
 
-	primaryIP, err := extractDNSIP(primaryDNS)
-	if err != nil {
-		return fmt.Errorf("无法从 %q 提取 DNS IP 地址: %w", primaryDNS, err)
-	}
-
-	nameServer := primaryIP
+	nameServer := primaryDNS
 	if secondaryDNS != "" {
-		secondaryIP, err := extractDNSIP(secondaryDNS)
-		if err == nil && secondaryIP != "" {
-			nameServer = primaryIP + "," + secondaryIP
-		}
+		nameServer = primaryDNS + "," + secondaryDNS
 	}
 
 	guid, err := getAdapterGUID(adapterName)

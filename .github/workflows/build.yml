@@ -34,10 +34,6 @@ jobs:
             goos: linux
             goarch: amd64
             ext: ""
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm64
-            ext: ""
 
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
@@ -62,7 +58,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.1
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 
       # --- Platform-specific dependencies ---
 
@@ -92,7 +88,11 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build application
+      - name: Generate Wails bindings
+        run: wails generate module
+
+      - name: Build application (Windows/Linux)
+        if: matrix.goos != 'darwin'
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -101,6 +101,31 @@ jobs:
           -platform ${{ matrix.goos }}/${{ matrix.goarch }}
           -o dns-selector-gui-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
 
+      - name: Build application (macOS)
+        if: matrix.goos == 'darwin'
+        run: |
+          cd frontend
+          npm run build
+          cd ..
+
+          OUTPUT="build/bin/dns-selector-gui-${{ github.ref_name }}-darwin-${{ matrix.goarch }}"
+
+          if [ "${{ matrix.goarch }}" = "amd64" ]; then
+            GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 \
+            CGO_CFLAGS='-arch x86_64' \
+            CGO_LDFLAGS='-arch x86_64 -framework UniformTypeIdentifiers' \
+            go build -buildvcs=false \
+              -tags "desktop,wv2runtime.download,production" \
+              -ldflags "-w -s -extldflags '-arch x86_64 -framework UniformTypeIdentifiers'" \
+              -o "$OUTPUT" .
+          else
+            GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 \
+            go build -buildvcs=false \
+              -tags "desktop,wv2runtime.download,production" \
+              -ldflags "-w -s -extldflags '-framework UniformTypeIdentifiers'" \
+              -o "$OUTPUT" .
+          fi
+
       # --- macOS DMG packaging ---
 
       - name: Package macOS DMG
@@ -108,13 +133,26 @@ jobs:
         run: |
           APP_PATH="build/bin/dns-selector-gui-${{ github.ref_name }}-darwin-${{ matrix.goarch }}.app"
           DMG_PATH="build/bin/dns-selector-gui-${{ github.ref_name }}-darwin-${{ matrix.goarch }}.dmg"
+          BINARY="build/bin/dns-selector-gui-${{ github.ref_name }}-darwin-${{ matrix.goarch }}"
 
-          # If wails produced a .app bundle, use it; otherwise wrap the binary
-          if [ ! -d "$APP_PATH" ]; then
-            BINARY="build/bin/dns-selector-gui-${{ github.ref_name }}-darwin-${{ matrix.goarch }}"
-            mkdir -p "$APP_PATH/Contents/MacOS"
-            cp "$BINARY" "$APP_PATH/Contents/MacOS/dns-selector-gui"
-          fi
+          rm -rf "$APP_PATH"
+          mkdir -p "$APP_PATH/Contents/MacOS" "$APP_PATH/Contents/Resources"
+          cp "$BINARY" "$APP_PATH/Contents/MacOS/dns-selector-gui"
+          cp assets/icons.icns "$APP_PATH/Contents/Resources/iconfile.icns"
+
+          cat > "$APP_PATH/Contents/Info.plist" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>CFBundleExecutable</key><string>dns-selector-gui</string>
+          <key>CFBundleIdentifier</key><string>com.betterlmy.dns-selector-gui</string>
+          <key>CFBundleName</key><string>DNS Selector</string>
+          <key>CFBundleIconFile</key><string>iconfile</string>
+          <key>CFBundlePackageType</key><string>APPL</string>
+          <key>CFBundleVersion</key><string>${{ github.ref_name }}</string>
+          <key>CFBundleShortVersionString</key><string>${{ github.ref_name }}</string>
+          </dict></plist>
+          EOF
 
           create-dmg \
             --volname "DNS Selector GUI" \
@@ -180,7 +218,6 @@ jobs:
             | macOS | Intel (amd64) | `dns-selector-gui-${{ github.ref_name }}-darwin-amd64.dmg` |
             | macOS | Apple Silicon (arm64) | `dns-selector-gui-${{ github.ref_name }}-darwin-arm64.dmg` |
             | Linux | x64 (amd64) | `dns-selector-gui-${{ github.ref_name }}-linux-amd64` |
-            | Linux | ARM64 | `dns-selector-gui-${{ github.ref_name }}-linux-arm64` |
 
             ### System Requirements
 

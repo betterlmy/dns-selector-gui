@@ -134,3 +134,40 @@ func isValidHTTPSURL(s string) bool {
 	}
 	return strings.ToLower(u.Scheme) == "https" && u.Host != ""
 }
+
+// ValidateBootstrapIP 验证 BootstrapIP 是否为合法的 IPv4 地址（允许为空）。
+func ValidateBootstrapIP(ip string) error {
+	if ip == "" {
+		return nil
+	}
+	parsed := net.ParseIP(strings.TrimSpace(ip))
+	if parsed == nil || parsed.To4() == nil {
+		return fmt.Errorf("BootstrapIP %q 不是合法的 IPv4 地址", ip)
+	}
+	return nil
+}
+
+// ValidateTLSServerName 验证 TLSServerName 是否为合法域名（允许为空）。
+func ValidateTLSServerName(name string) error {
+	if name == "" {
+		return nil
+	}
+	if !isValidDomain(name) {
+		return fmt.Errorf("TLSServerName %q 不是合法的域名格式", name)
+	}
+	return nil
+}
+
+// ValidateServerEntry 对添加服务器请求做完整校验（地址 + 附加字段）。
+func ValidateServerEntry(req AddServerRequest) error {
+	if err := ValidateServerAddress(req.Protocol, req.Address); err != nil {
+		return err
+	}
+	if err := ValidateBootstrapIP(req.BootstrapIP); err != nil {
+		return err
+	}
+	if err := ValidateTLSServerName(req.TLSServerName); err != nil {
+		return err
+	}
+	return nil
+}

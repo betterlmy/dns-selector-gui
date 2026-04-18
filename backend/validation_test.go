@@ -26,10 +26,10 @@ func TestValidateServerAddress_UDP_Invalid(t *testing.T) {
 		"not-an-ip",
 		"256.1.1.1",
 		"1.2.3",
-		"::1",             // IPv6
-		"2001:db8::1",     // IPv6
-		"dns.google",      // domain, not IP
-		"https://8.8.8.8", // URL
+		"::1",
+		"2001:db8::1",
+		"dns.google",
+		"https://8.8.8.8",
 	}
 	for _, addr := range invalidAddresses {
 		if err := ValidateServerAddress("udp", addr); err == nil {
@@ -71,9 +71,9 @@ func TestValidateServerAddress_DoT_Invalid(t *testing.T) {
 	invalidAddresses := []string{
 		"",
 		"not valid domain!",
-		"8.8.8.8@",           // empty TLS part
-		"notanip@dns.google", // non-IP before @
-		"-invalid.com",       // starts with hyphen
+		"8.8.8.8@",
+		"notanip@dns.google",
+		"-invalid.com",
 	}
 	for _, addr := range invalidAddresses {
 		if err := ValidateServerAddress("dot", addr); err == nil {
@@ -111,11 +111,11 @@ func TestValidateServerAddress_DoH_ValidURLAtTLS(t *testing.T) {
 func TestValidateServerAddress_DoH_Invalid(t *testing.T) {
 	invalidAddresses := []string{
 		"",
-		"http://dns.google/dns-query", // http, not https
-		"dns.google/dns-query",        // no scheme
-		"https://@tls",                // empty host
-		"ftp://dns.google/dns-query",  // wrong scheme
-		"https://1.1.1.1/dns-query@",  // empty TLS part
+		"http://dns.google/dns-query",
+		"dns.google/dns-query",
+		"https://@tls",
+		"ftp://dns.google/dns-query",
+		"https://1.1.1.1/dns-query@",
 	}
 	for _, addr := range invalidAddresses {
 		if err := ValidateServerAddress("doh", addr); err == nil {
@@ -149,10 +149,7 @@ func TestValidateServerAddress_CaseInsensitiveProtocol(t *testing.T) {
 	}
 }
 
-// --- ValidateTestParams tests ---
-
 func TestValidateTestParams_Valid(t *testing.T) {
-	// DefaultTestParams should always be valid
 	if err := ValidateTestParams(DefaultTestParams()); err != nil {
 		t.Errorf("ValidateTestParams(DefaultTestParams()) returned error: %v", err)
 	}
@@ -198,8 +195,6 @@ func TestValidateTestParams_InvalidTimeoutNegative(t *testing.T) {
 	}
 }
 
-// --- ValidateDomain tests ---
-
 func TestValidateDomain_Valid(t *testing.T) {
 	validDomains := []string{
 		"example.com",
@@ -225,5 +220,23 @@ func TestValidateDomain_Invalid(t *testing.T) {
 		if err := ValidateDomain(d); err == nil {
 			t.Errorf("ValidateDomain(%q) expected error, got nil", d)
 		}
+	}
+}
+
+func TestValidateBootstrapIP_RejectsIPv6(t *testing.T) {
+	err := ValidateBootstrapIP("2001:4860:4860::8888")
+	if err == nil {
+		t.Fatal("expected IPv6 bootstrap IP to be rejected")
+	}
+}
+
+func TestValidateServerEntry_RejectsInvalidTLSServerName(t *testing.T) {
+	err := ValidateServerEntry(AddServerRequest{
+		Protocol:      "dot",
+		Address:       "dns.google",
+		TLSServerName: "bad host name",
+	})
+	if err == nil {
+		t.Fatal("expected invalid TLS server name to be rejected")
 	}
 }

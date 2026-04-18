@@ -30,8 +30,12 @@ export function Recommendation() {
         <button
           className="recommendation__apply-btn"
           onClick={() => setShowApply(true)}
-          disabled={benchmarkRunning}
-          title={`将 ${best.name} 设为系统 DNS`}
+          disabled={benchmarkRunning || !best.canApplyToSystem}
+          title={
+            !best.canApplyToSystem
+              ? '该服务器可测速，但无法直接写入系统 DNS（需配置 BootstrapIP）'
+              : `将 ${best.name} 设为系统 DNS`
+          }
         >
           应用
         </button>

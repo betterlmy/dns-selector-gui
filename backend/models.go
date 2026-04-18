@@ -10,11 +10,12 @@ type AddServerRequest struct {
 
 // ServerInfo 服务器列表项（前端展示用）
 type ServerInfo struct {
-	Name          string `json:"name"`
-	Address       string `json:"address"`
-	Protocol      string `json:"protocol"` // "udp" | "dot" | "doh"
-	TLSServerName string `json:"tlsServerName"`
-	IsPreset      bool   `json:"isPreset"` // 是否为预设项（不可删除）
+	Name             string `json:"name"`
+	Address          string `json:"address"`
+	Protocol         string `json:"protocol"` // "udp" | "dot" | "doh"
+	TLSServerName    string `json:"tlsServerName"`
+	IsPreset         bool   `json:"isPreset"`         // 是否为预设项（不可删除）
+	CanApplyToSystem bool   `json:"canApplyToSystem"` // 是否可直接写入系统 DNS
 }
 
 // DomainInfo 域名列表项（前端展示用）
@@ -45,6 +46,7 @@ type TestResultItem struct {
 	AnswerMismatches int     `json:"answerMismatches"`
 	Score            float64 `json:"score"`
 	IsTimeout        bool    `json:"isTimeout"`
+	CanApplyToSystem bool    `json:"canApplyToSystem"` // 是否可直接写入系统 DNS
 }
 
 // TestResultsData 完整测试结果

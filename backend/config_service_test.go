@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,7 +31,7 @@ func TestLoad_NonexistentFile_ReturnsDefault(t *testing.T) {
 	}
 }
 
-func TestLoad_CorruptJSON_ReturnsDefault(t *testing.T) {
+func TestLoad_CorruptJSON_ReturnsError(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "corrupt.json")
 	if err := os.WriteFile(path, []byte("{invalid json!!!}"), 0644); err != nil {
@@ -41,15 +40,40 @@ func TestLoad_CorruptJSON_ReturnsDefault(t *testing.T) {
 
 	svc := NewConfigService()
 	cfg, err := svc.Load(path)
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
+	if err == nil {
+		t.Fatal("Load returned nil error for corrupt JSON")
 	}
-	expected := DefaultAppConfig()
-	if cfg.CurrentPreset != expected.CurrentPreset {
-		t.Errorf("CurrentPreset: got %q, want %q", cfg.CurrentPreset, expected.CurrentPreset)
+	if cfg != nil {
+		t.Fatalf("Load returned config for corrupt JSON: %+v", cfg)
 	}
-	if cfg.TestParams != expected.TestParams {
-		t.Errorf("TestParams: got %+v, want %+v", cfg.TestParams, expected.TestParams)
+	if !strings.Contains(err.Error(), "配置文件格式损坏") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_PermissionDenied_ReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(path, []byte(`{"currentPreset":"cn","customServers":[],"customDomains":[],"testParams":{"queries":10,"warmup":1,"concurrency":20,"timeout":2}}`), 0000); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chmod(path, 0644)
+	})
+
+	svc := NewConfigService()
+	cfg, err := svc.Load(path)
+	if os.Geteuid() == 0 {
+		t.Skip("permission checks are unreliable when running as root")
+	}
+	if err == nil {
+		t.Fatal("Load returned nil error for permission denied file")
+	}
+	if cfg != nil {
+		t.Fatalf("Load returned config for unreadable file: %+v", cfg)
+	}
+	if !strings.Contains(err.Error(), "读取配置文件失败") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -73,14 +97,14 @@ func TestSaveAndLoad_RoundTrip(t *testing.T) {
 	}
 
 	// Save
-	svc := NewConfigService()
+	svc := NewConfigServiceWithPaths(path, filepath.Join(dir, "last_results.json"))
 	svc.UpdateConfig(&original) // sets in-memory config
 	if err := svc.Save(path); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 
 	// Load into a fresh service
-	svc2 := NewConfigService()
+	svc2 := NewConfigServiceWithPaths(path, filepath.Join(dir, "last_results.json"))
 	loaded, err := svc2.Load(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
@@ -112,7 +136,6 @@ func TestSaveAndLoad_RoundTrip(t *testing.T) {
 
 func TestSaveResults_AndLoadResults_RoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	// Override the default results path by writing directly to a temp file
 	resultsPath := filepath.Join(dir, "last_results.json")
 
 	results := &TestResultsData{
@@ -135,42 +158,32 @@ func TestSaveResults_AndLoadResults_RoundTrip(t *testing.T) {
 		BestDNS:  "TestDNS",
 	}
 
-	// Manually save results to temp path
-	persisted := PersistedResults{
-		Results: *results,
-		Version: "1.0.0",
-	}
-	data, err := json.MarshalIndent(persisted, "", "  ")
-	if err != nil {
-		t.Fatalf("Marshal: %v", err)
-	}
-	if err := os.WriteFile(resultsPath, data, 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
+	svc := NewConfigServiceWithPaths(filepath.Join(dir, "config.json"), resultsPath)
+	if err := svc.SaveResults(results); err != nil {
+		t.Fatalf("SaveResults: %v", err)
 	}
 
-	// Read back and verify
-	readData, err := os.ReadFile(resultsPath)
+	loadedResults, err := svc.LoadResults()
 	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
+		t.Fatalf("LoadResults: %v", err)
 	}
-	var loaded PersistedResults
-	if err := json.Unmarshal(readData, &loaded); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
+	if loadedResults == nil {
+		t.Fatal("LoadResults returned nil")
 	}
 
-	if loaded.Results.BestDNS != results.BestDNS {
-		t.Errorf("BestDNS: got %q, want %q", loaded.Results.BestDNS, results.BestDNS)
+	if loadedResults.BestDNS != results.BestDNS {
+		t.Errorf("BestDNS: got %q, want %q", loadedResults.BestDNS, results.BestDNS)
 	}
-	if loaded.Results.Preset != results.Preset {
-		t.Errorf("Preset: got %q, want %q", loaded.Results.Preset, results.Preset)
+	if loadedResults.Preset != results.Preset {
+		t.Errorf("Preset: got %q, want %q", loadedResults.Preset, results.Preset)
 	}
-	if loaded.Results.TestTime != results.TestTime {
-		t.Errorf("TestTime: got %q, want %q", loaded.Results.TestTime, results.TestTime)
+	if loadedResults.TestTime != results.TestTime {
+		t.Errorf("TestTime: got %q, want %q", loadedResults.TestTime, results.TestTime)
 	}
-	if len(loaded.Results.Items) != len(results.Items) {
-		t.Fatalf("Items length: got %d, want %d", len(loaded.Results.Items), len(results.Items))
+	if len(loadedResults.Items) != len(results.Items) {
+		t.Fatalf("Items length: got %d, want %d", len(loadedResults.Items), len(results.Items))
 	}
-	item := loaded.Results.Items[0]
+	item := loadedResults.Items[0]
 	if item.Name != "TestDNS" || item.Address != "1.2.3.4" || item.Protocol != "udp" {
 		t.Errorf("Item basic fields mismatch: %+v", item)
 	}
@@ -183,21 +196,34 @@ func TestSaveResults_AndLoadResults_RoundTrip(t *testing.T) {
 }
 
 func TestLoadResults_NonexistentFile_ReturnsNil(t *testing.T) {
-	// LoadResults uses defaultResultsPath() which depends on os.UserConfigDir().
-	// On macOS this is $HOME/Library/Application Support, on Linux $XDG_CONFIG_HOME,
-	// on Windows %APPDATA%. We redirect HOME/XDG_CONFIG_HOME/APPDATA to a temp dir.
 	dir := t.TempDir()
-	t.Setenv("APPDATA", dir)                                  // Windows
-	t.Setenv("HOME", dir)                                     // macOS fallback
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(dir, "config")) // Linux
-
-	svc := NewConfigService()
+	svc := NewConfigServiceWithPaths(filepath.Join(dir, "config.json"), filepath.Join(dir, "missing-results.json"))
 	result, err := svc.LoadResults()
 	if err != nil {
 		t.Fatalf("LoadResults returned error: %v", err)
 	}
 	if result != nil {
 		t.Errorf("LoadResults: got %+v, want nil", result)
+	}
+}
+
+func TestNewConfigServiceWithPaths_UsesInjectedPaths(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "custom-config.json")
+	resultsPath := filepath.Join(dir, "custom-results.json")
+
+	svc := NewConfigServiceWithPaths(configPath, resultsPath)
+
+	if got := svc.GetDefaultPath(); got != configPath {
+		t.Fatalf("GetDefaultPath() = %q, want %q", got, configPath)
+	}
+
+	results := &TestResultsData{BestDNS: "test"}
+	if err := svc.SaveResults(results); err != nil {
+		t.Fatalf("SaveResults returned error: %v", err)
+	}
+	if _, err := os.Stat(resultsPath); err != nil {
+		t.Fatalf("results path not written: %v", err)
 	}
 }
 

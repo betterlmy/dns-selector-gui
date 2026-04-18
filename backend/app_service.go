@@ -47,13 +47,32 @@ func (a *AppService) OnStartup(ctx context.Context) {
 	a.ctx = ctx
 
 	// 从默认路径加载配置
-	cfg, _ := a.config.Load(a.config.GetDefaultPath())
+	cfg, err := a.config.Load(a.config.GetDefaultPath())
+	if err != nil {
+		// 配置加载失败（损坏或权限错误），使用默认配置并通知前端
+		defaultCfg := DefaultAppConfig()
+		a.applyConfig(&defaultCfg)
+		// 延迟通知，等待前端就绪
+		go func() {
+			wailsRuntime.EventsEmit(a.ctx, "app:configError", map[string]interface{}{
+				"message": err.Error(),
+			})
+		}()
+		return
+	}
 	if cfg != nil {
 		a.applyConfig(cfg)
 	}
 
 	// 加载历史测试结果
-	results, _ := a.config.LoadResults()
+	results, err := a.config.LoadResults()
+	if err != nil {
+		go func() {
+			wailsRuntime.EventsEmit(a.ctx, "app:configError", map[string]interface{}{
+				"message": "历史测试结果加载失败: " + err.Error(),
+			})
+		}()
+	}
 	if results != nil {
 		a.mu.Lock()
 		a.lastResults = results
@@ -111,12 +130,14 @@ func (a *AppService) GetServerList() []ServerInfo {
 	servers := a.preset.GetMergedServers()
 	result := make([]ServerInfo, 0, len(servers))
 	for _, s := range servers {
+		_, canApply := ResolveSystemDNSAddresses(s)
 		result = append(result, ServerInfo{
-			Name:          s.Name,
-			Address:       s.Address,
-			Protocol:      s.Protocol,
-			TLSServerName: s.TLSServerName,
-			IsPreset:      a.preset.IsPresetItem(s.Address),
+			Name:             s.Name,
+			Address:          s.Address,
+			Protocol:         s.Protocol,
+			TLSServerName:    s.TLSServerName,
+			IsPreset:         a.preset.IsPresetServer(s.Protocol, s.Address, s.TLSServerName),
+			CanApplyToSystem: canApply == nil,
 		})
 	}
 	return result
@@ -139,7 +160,7 @@ func (a *AppService) GetDomainList() []DomainInfo {
 
 // AddCustomServer 验证并添加自定义 DNS 服务器，然后自动保存配置。
 func (a *AppService) AddCustomServer(req AddServerRequest) error {
-	if err := ValidateServerAddress(req.Protocol, req.Address); err != nil {
+	if err := ValidateServerEntry(req); err != nil {
 		return err
 	}
 
@@ -159,9 +180,9 @@ func (a *AppService) AddCustomServer(req AddServerRequest) error {
 	return a.autoSaveConfig()
 }
 
-// RemoveCustomServer 按地址删除自定义服务器并自动保存配置。
-func (a *AppService) RemoveCustomServer(address string) error {
-	if err := a.preset.RemoveCustomServer(address); err != nil {
+// RemoveCustomServer 按复合标识删除自定义服务器并自动保存配置。
+func (a *AppService) RemoveCustomServer(protocol, address, tlsServerName string) error {
+	if err := a.preset.RemoveCustomServer(protocol, address, tlsServerName); err != nil {
 		return err
 	}
 	return a.autoSaveConfig()
@@ -266,6 +287,18 @@ func (a *AppService) StartBenchmark() error {
 		// 处理测试结果
 		preset := a.preset.GetCurrentPreset()
 		resultsData := ProcessResults(results, preset)
+
+		// 富化 CanApplyToSystem：利用本次测速时的 server 列表（含 BootstrapIPs）
+		serverMap := make(map[string]selector.DNSServer, len(servers))
+		for _, s := range servers {
+			serverMap[s.Protocol+"|"+s.Address] = s
+		}
+		for i, item := range resultsData.Items {
+			if s, ok := serverMap[item.Protocol+"|"+item.Address]; ok {
+				_, err := ResolveSystemDNSAddresses(s)
+				resultsData.Items[i].CanApplyToSystem = err == nil
+			}
+		}
 
 		// 保存测试结果
 		a.mu.Lock()

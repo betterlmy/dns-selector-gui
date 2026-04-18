@@ -10,17 +10,30 @@ import (
 
 // ConfigService 管理 JSON 配置文件的读写和自动保存。
 type ConfigService struct {
-	configPath string     // 配置文件路径
-	config     *AppConfig // 当前内存中的配置
-	mu         sync.RWMutex
+	configPath  string     // 配置文件路径
+	resultsPath string     // 测试结果文件路径
+	config      *AppConfig // 当前内存中的配置
+	mu          sync.RWMutex
 }
 
 // NewConfigService 创建 ConfigService 实例，使用默认配置和默认路径。
 func NewConfigService() *ConfigService {
+	return NewConfigServiceWithPaths(defaultConfigPath(), defaultResultsPath())
+}
+
+// NewConfigServiceWithPaths 创建 ConfigService 实例，允许测试或调用方注入配置/结果文件路径。
+func NewConfigServiceWithPaths(configPath, resultsPath string) *ConfigService {
 	defaultCfg := DefaultAppConfig()
+	if configPath == "" {
+		configPath = defaultConfigPath()
+	}
+	if resultsPath == "" {
+		resultsPath = defaultResultsPath()
+	}
 	return &ConfigService{
-		configPath: defaultConfigPath(),
-		config:     &defaultCfg,
+		configPath:  configPath,
+		resultsPath: resultsPath,
+		config:      &defaultCfg,
 	}
 }
 
@@ -46,11 +59,15 @@ func defaultResultsPath() string {
 
 // GetDefaultPath 返回默认配置文件路径。
 func (c *ConfigService) GetDefaultPath() string {
-	return defaultConfigPath()
+	return c.configPath
 }
 
 // Load 从指定路径读取 JSON 配置文件并存储到内存。
-// 如果文件不存在或 JSON 格式损坏，返回默认配置（不报错）。
+//
+// 错误处理策略：
+//   - 文件不存在：返回默认配置，error 为 nil（首次启动的正常情况）
+//   - 文件存在但读取失败（权限不足等）：返回 nil + error，不覆盖原文件
+//   - 文件存在但 JSON 损坏：返回 nil + error，让调用方决定是否重置
 func (c *ConfigService) Load(path string) (*AppConfig, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -59,18 +76,20 @@ func (c *ConfigService) Load(path string) (*AppConfig, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		// 文件不存在或无法读取 —— 使用默认配置
-		defaultCfg := DefaultAppConfig()
-		c.config = &defaultCfg
-		return c.config, nil
+		if os.IsNotExist(err) {
+			// 文件不存在属于正常情况（首次运行），返回默认配置
+			defaultCfg := DefaultAppConfig()
+			c.config = &defaultCfg
+			return c.config, nil
+		}
+		// 文件存在但无法读取（权限不足等），不静默处理
+		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
 
 	var cfg AppConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		// JSON 格式损坏 —— 使用默认配置
-		defaultCfg := DefaultAppConfig()
-		c.config = &defaultCfg
-		return c.config, nil
+		// JSON 损坏，不自动覆盖，让调用方决策
+		return nil, fmt.Errorf("配置文件格式损坏，请检查或删除 %s: %w", path, err)
 	}
 
 	c.config = &cfg
@@ -134,7 +153,7 @@ func (c *ConfigService) SaveResults(results *TestResultsData) error {
 		return fmt.Errorf("序列化测试结果失败: %w", err)
 	}
 
-	path := defaultResultsPath()
+	path := c.resultsPath
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("创建结果目录 %s 失败: %w", dir, err)
@@ -150,7 +169,7 @@ func (c *ConfigService) SaveResults(results *TestResultsData) error {
 // LoadResults 从 {configDir}/dns-selector-gui/last_results.json 加载测试结果。
 // 如果文件不存在，返回 nil（不报错）。
 func (c *ConfigService) LoadResults() (*TestResultsData, error) {
-	path := defaultResultsPath()
+	path := c.resultsPath
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -182,7 +201,12 @@ func ValidateConfig(config *AppConfig) error {
 
 	// 验证自定义服务器地址
 	for i, server := range config.CustomServers {
-		if err := ValidateServerAddress(server.Protocol, server.Address); err != nil {
+		if err := ValidateServerEntry(AddServerRequest{
+			Protocol:      server.Protocol,
+			Address:       server.Address,
+			TLSServerName: server.TLSServerName,
+			BootstrapIP:   server.BootstrapIP,
+		}); err != nil {
 			return fmt.Errorf("第 %d 个自定义服务器无效: %w", i+1, err)
 		}
 	}

@@ -5,6 +5,7 @@ import {
   GetServerList,
   GetDomainList,
 } from '../../../wailsjs/go/backend/AppService';
+import { getErrorMessage } from '../../utils/errors';
 import './PresetSelector.css';
 
 export function PresetSelector() {
@@ -12,6 +13,7 @@ export function PresetSelector() {
   const setCurrentPreset = useAppStore((s) => s.setCurrentPreset);
   const setServers = useAppStore((s) => s.setServers);
   const setDomains = useAppStore((s) => s.setDomains);
+  const setError = useAppStore((s) => s.setError);
   const benchmarkRunning = useAppStore((s) => s.benchmarkRunning);
   const [switching, setSwitching] = useState(false);
 
@@ -28,7 +30,7 @@ export function PresetSelector() {
       setServers(servers);
       setDomains(domains);
     } catch (err) {
-      console.error('Failed to switch preset:', err);
+      setError(getErrorMessage(err, '切换预设失败。'));
     } finally {
       setSwitching(false);
     }

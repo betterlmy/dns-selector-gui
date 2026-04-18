@@ -1,18 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { GetNetworkAdapters } from '../../../wailsjs/go/backend/AppService';
+import { getErrorMessage } from '../../utils/errors';
 import './DnsConfig.css';
 
 export function CurrentDNSDisplay() {
   const adapters = useAppStore((s) => s.adapters);
   const setAdapters = useAppStore((s) => s.setAdapters);
+  const setError = useAppStore((s) => s.setError);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadAdapters = async () => {
     try {
       const list = await GetNetworkAdapters();
       setAdapters(list ?? []);
+      setLoadError(null);
     } catch (err) {
-      console.error('GetNetworkAdapters failed:', err);
+      const message = getErrorMessage(err, '读取网络适配器失败。');
+      setLoadError(message);
+      setError(message);
       setAdapters([]);
     }
   };
@@ -33,7 +39,9 @@ export function CurrentDNSDisplay() {
         </button>
       </div>
 
-      {(!adapters || adapters.length === 0) ? (
+      {loadError ? (
+        <div className="dns-empty dns-empty--error">{loadError}</div>
+      ) : (!adapters || adapters.length === 0) ? (
         <div className="dns-empty">无活动网络适配器</div>
       ) : (
         adapters.map((a) => (

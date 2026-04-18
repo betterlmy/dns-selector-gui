@@ -106,8 +106,8 @@ func TestProperty9_InvalidConfigRejected(t *testing.T) {
 		})
 	})
 
-	// Sub-property: corrupt JSON files cause Load to return default config
-	t.Run("CorruptJSONReturnsDefault", func(t *testing.T) {
+	// Sub-property: corrupt JSON files are rejected during load
+	t.Run("CorruptJSONReturnsError", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			// Generate random bytes that are unlikely to be valid JSON
 			s := rapid.StringMatching(`[{"\w:,}]{5,40}`).Draw(t, "corruptJSON")

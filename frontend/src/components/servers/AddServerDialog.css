@@ -53,6 +53,10 @@
   border-color: var(--accent-color);
 }
 
+.form-input.has-error {
+  border-color: var(--error-color);
+}
+
 .protocol-select {
   display: flex;
   gap: 6px;

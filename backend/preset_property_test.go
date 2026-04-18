@@ -27,11 +27,11 @@ func TestProperty1_PresetItemsCannotBeDeleted(t *testing.T) {
 		// Test server deletion
 		if len(preset.Servers) > 0 {
 			idx := rapid.IntRange(0, len(preset.Servers)-1).Draw(t, "serverIdx")
-			addr := preset.Servers[idx].Address
+			s := preset.Servers[idx]
 			beforeLen := len(ps.GetMergedServers())
-			err := ps.RemoveCustomServer(addr)
+			err := ps.RemoveCustomServer(s.Protocol, s.Address, s.TLSServerName)
 			if err == nil {
-				t.Fatalf("expected error when deleting preset server %q", addr)
+				t.Fatalf("expected error when deleting preset server %q", s.Address)
 			}
 			afterLen := len(ps.GetMergedServers())
 			if afterLen != beforeLen {
@@ -76,7 +76,7 @@ func TestProperty3_CustomItemDeletionShrinksList(t *testing.T) {
 		addr := fmt.Sprintf("custom-%d.test", idx)
 
 		beforeLen := len(ps.GetMergedServers())
-		err := ps.RemoveCustomServer(addr)
+		err := ps.RemoveCustomServer("udp", addr, "")
 		if err != nil {
 			t.Fatalf("RemoveCustomServer(%q): %v", addr, err)
 		}

@@ -10,7 +10,8 @@
 /* 侧边栏折叠/展开按钮 */
 .sidebar-toggle {
   position: absolute;
-  top: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   left: 0;
   z-index: 10;
   width: 20px;

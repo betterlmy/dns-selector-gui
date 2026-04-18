@@ -5,6 +5,7 @@ import {
   GetServerList,
 } from '../../../wailsjs/go/backend/AppService';
 import { AddServerDialog } from './AddServerDialog';
+import { getErrorMessage } from '../../utils/errors';
 import './ServerList.css';
 
 const protocolLabels: Record<string, string> = {
@@ -22,16 +23,17 @@ const protocolColors: Record<string, string> = {
 export function ServerList() {
   const servers = useAppStore((s) => s.servers);
   const setServers = useAppStore((s) => s.setServers);
+  const setError = useAppStore((s) => s.setError);
   const benchmarkRunning = useAppStore((s) => s.benchmarkRunning);
   const [showDialog, setShowDialog] = useState(false);
 
-  const handleRemove = async (address: string) => {
+  const handleRemove = async (protocol: string, address: string, tlsServerName: string) => {
     try {
-      await RemoveCustomServer(address);
+      await RemoveCustomServer(protocol, address, tlsServerName);
       const updated = await GetServerList();
       setServers(updated);
     } catch (err) {
-      console.error('Failed to remove server:', err);
+      setError(getErrorMessage(err, '删除 DNS 服务器失败。'));
     }
   };
 
@@ -55,7 +57,7 @@ export function ServerList() {
       </div>
       <div className="server-list-items">
         {servers.map((s) => (
-          <div key={s.address} className="server-item">
+          <div key={`${s.protocol}|${s.address}|${s.tlsServerName}`} className="server-item">
             <span
               className="protocol-badge"
               style={{ backgroundColor: protocolColors[s.protocol] || 'var(--accent-color)' }}
@@ -68,7 +70,7 @@ export function ServerList() {
             </div>
             <button
               className="remove-btn"
-              onClick={() => handleRemove(s.address)}
+              onClick={() => handleRemove(s.protocol, s.address, s.tlsServerName)}
               disabled={s.isPreset || benchmarkRunning}
               title={s.isPreset ? '预设项不可删除' : '删除'}
             >

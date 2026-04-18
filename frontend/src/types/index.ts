@@ -15,6 +15,7 @@ export interface ServerInfo {
   protocol: string; // "udp" | "dot" | "doh"
   tlsServerName: string;
   isPreset: boolean;
+  canApplyToSystem?: boolean; // 是否可直接写入系统 DNS
 }
 
 /** 域名列表项（前端展示用） */
@@ -45,6 +46,7 @@ export interface TestResultItem {
   answerMismatches: number;
   score: number;
   isTimeout: boolean;
+  canApplyToSystem?: boolean; // 是否可直接写入系统 DNS
 }
 
 /** 完整测试结果 */

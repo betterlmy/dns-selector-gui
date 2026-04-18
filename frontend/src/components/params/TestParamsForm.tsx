@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { SetTestParams } from '../../../wailsjs/go/backend/AppService';
 import type { TestParams } from '../../types';
+import { getErrorMessage } from '../../utils/errors';
 import './TestParamsForm.css';
 
 interface FieldError {
@@ -15,6 +16,7 @@ export function TestParamsForm() {
   const testParams = useAppStore((s) => s.testParams);
   const setTestParams = useAppStore((s) => s.setTestParams);
   const benchmarkRunning = useAppStore((s) => s.benchmarkRunning);
+  const setError = useAppStore((s) => s.setError);
 
   const [form, setForm] = useState({
     queries: String(testParams.queries),
@@ -33,6 +35,33 @@ export function TestParamsForm() {
     });
   }, [testParams]);
 
+  useEffect(() => {
+    if (benchmarkRunning) {
+      return;
+    }
+
+    const errs = validate(form);
+    if (Object.keys(errs).length > 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const params: TestParams = {
+        queries: parseInt(form.queries, 10),
+        warmup: parseInt(form.warmup, 10),
+        concurrency: parseInt(form.concurrency, 10),
+        timeout: parseFloat(form.timeout),
+      };
+
+      setTestParams(params);
+      SetTestParams(params).catch((err) => {
+        setError(getErrorMessage(err, '保存测试参数失败。'));
+      });
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [benchmarkRunning, form, setError, setTestParams]);
+
   const validate = (f: typeof form): FieldError => {
     const e: FieldError = {};
     const q = parseInt(f.queries, 10);
@@ -49,21 +78,7 @@ export function TestParamsForm() {
   const handleChange = (field: keyof typeof form, value: string) => {
     const next = { ...form, [field]: value };
     setForm(next);
-    const errs = validate(next);
-    setErrors(errs);
-
-    if (Object.keys(errs).length === 0) {
-      const params: TestParams = {
-        queries: parseInt(next.queries, 10),
-        warmup: parseInt(next.warmup, 10),
-        concurrency: parseInt(next.concurrency, 10),
-        timeout: parseFloat(next.timeout),
-      };
-      setTestParams(params);
-      SetTestParams(params).catch((err) =>
-        console.error('Failed to set test params:', err)
-      );
-    }
+    setErrors(validate(next));
   };
 
   const fields: { key: keyof typeof form; label: string; unit: string }[] = [

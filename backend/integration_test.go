@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 
@@ -71,9 +72,7 @@ func TestIntegration_FullBenchmarkFlow(t *testing.T) {
 
 	// 步骤 8: 测试持久化 —— 保存到临时目录，再加载回来验证
 	dir := t.TempDir()
-	t.Setenv("APPDATA", dir)
-
-	cs := NewConfigService()
+	cs := NewConfigServiceWithPaths(filepath.Join(dir, "config.json"), filepath.Join(dir, "last_results.json"))
 	err = cs.SaveResults(processed)
 	if err != nil {
 		t.Fatalf("SaveResults 失败: %v", err)

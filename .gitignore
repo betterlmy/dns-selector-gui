@@ -13,11 +13,15 @@
 # Go 模块缓存（通常不需要提交）
 # vendor/
 
+# 本地 Go 构建缓存
+.cache/
+
 # Wails 构建产物
 build/
 
 # 前端依赖
 frontend/node_modules/
+frontend/package.json.md5
 
 # 前端构建产物
 frontend/dist/
@@ -50,3 +54,9 @@ tmp/
 temp/
 
 .kiro/
+.codex/
+.specs-fire/
+.specsmd/
+.claude/
+node_modules/
+dist/
